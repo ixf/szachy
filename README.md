@@ -1,0 +1,2 @@
+# szachy
+play framework + scalajs

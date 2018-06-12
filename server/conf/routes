@@ -1,0 +1,12 @@
+# Routes
+# This file defines all application routes (Higher priority routes first)
+# ~~~~
+
+# Home page
+GET        /                             brt.szachy.controllers.Application.index
+GET        /game/:id                     brt.szachy.controllers.Application.game(id)
+GET        /ws                           brt.szachy.controllers.Application.socket
+
+# Prefix must match `play.assets.urlPrefix`
+GET        /assets/*file                 controllers.Assets.at(path="/public", file)
+GET        /versionedAssets/*file        controllers.Assets.versioned(path="/public", file: Asset)
