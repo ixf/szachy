@@ -1,0 +1,27 @@
+
+
+#layers{
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+  width: 800px;
+}
+
+#chessboard{
+  position: absolute;
+  z-index: 1;
+}
+
+#gridboard{
+  position: absolute;
+  z-index: 0;
+}
+
+#button{
+  border-radius: 4px;
+  color: #ccc;
+  background: #fff;
+  border: 1px solid transparent;
+  padding: 20px;
+}
+
