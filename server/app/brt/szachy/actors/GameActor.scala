@@ -45,6 +45,7 @@ class GameActor(out: ActorRef) extends Actor {
           println("checkmate");
           white ! Checkmate(newBoard.turn.other)
           black ! Checkmate(newBoard.turn.other)
+          for( a <- observers ) { a ! Checkmate(newBoard.turn.other) }
         }
         context.become(game(newBoard,white,black,observers))
       } else {
