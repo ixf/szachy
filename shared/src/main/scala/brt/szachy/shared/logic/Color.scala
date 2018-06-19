@@ -16,10 +16,3 @@ case object Black extends Color {
   val other = White
 }
 
-case object Angry extends Color {
-  val name = "angry"
-  val abbrev = 'a'
-  val other = White
-}
-
-  

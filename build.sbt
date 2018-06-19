@@ -34,7 +34,10 @@ lazy val homepageclient = (project in file("homepageclient")).settings(commonSet
 ).enablePlugins(ScalaJSPlugin, ScalaJSWeb).
   dependsOn(sharedJs)
 
-lazy val shared = (crossProject.crossType(CrossType.Pure) in file("shared")).settings(commonSettings)
+lazy val scalacheck = "org.scalacheck" %% "scalacheck" % "1.13.4"
+lazy val shared = (crossProject.crossType(CrossType.Pure) in file("shared")).settings(commonSettings).settings(
+  libraryDependencies += specs2 % Test
+  )
 lazy val sharedJvm = shared.jvm
 lazy val sharedJs = shared.js
 

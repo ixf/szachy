@@ -8,13 +8,15 @@ sealed trait Figure {
   lazy val abbrev: Char = name(0).toLower
   def reachables(from: Position, board: Board, color: Color): List[Position]
   def canMove(form: Position, to: Position, board: Board, color: Color): Boolean
+
+  def canCastle(from: Position, to: Position, board: Board, color: Color): Option[(Position,Position)] = None
 }
 
 
 sealed trait RepeatedMoves extends Figure {
   override def canMove(from: Position, to: Position, board: Board, color: Color): Boolean = {
     this.reachables(from, board, color).contains(to)
-  } // TODO wolne
+  }
 
   def reachables(from: Position, board: Board, color: Color): List[Position] = {
 
@@ -34,22 +36,43 @@ sealed trait RepeatedMoves extends Figure {
   }
 }
 
-sealed trait SimpleMoves extends Figure {
-  override def canMove(from: Position, to: Position, board: Board, color: Color): Boolean = {
-    this.reachables(from, board, color).contains(to)
-  }
-  def reachables(from: Position, board: Board, color: Color): List[Position] = {
-    dirs.filter( d => ( board.pieces.get(from(d)).isEmpty || board.pieces(from(d)).color != color ) && from(d).onBoard )
-      .map( d => from(d) )
-  }
-}
 
-case object King extends SimpleMoves {
+case object King extends Figure{
   val name = "King"
-  val dirs: List[Direction] = Queen.dirs
+  val dirs: List[Direction] = Queen.dirs ++ List(left(left), right(right))
+
+  def reachables(from: Position, board: Board, color: Color): List[Position] =
+    for( d <- dirs if canMove(from, from(d), board, color )) yield from(d)
+
+  def canMove(from: Position, to: Position, board: Board, color: Color): Boolean = {
+    if( from.distance( to ) == 1 || from.absDelta( to ) == (1,1) )
+      ( ( board.pieces.get(to).isEmpty || board.pieces(to).color != color ) && to.onBoard )
+    else
+      canCastle(from, to, board, color).nonEmpty
+  }
+
+  override def canCastle(from: Position, to: Position, board: Board, color: Color): Option[(Position, Position)] = {
+    if( from.absDelta(to) == (2,0) && ! board.moved(from.x)(from.y) ){
+
+      // nie może być żadnej figury między królem a wieżą + wieża nieruszona
+      if( to.x < from.x && ( ! board.pieces.contents.slice(1, from.x).map( v=>v(from.y)).exists( _ != None ) ) &&
+          ( ! board.moved(0)(from.y) ) && board.pieces.get(Position(0,from.y)).orElse(Some(Piece(White,Pawn))).get.figure == Rook){
+        Some(Position(0, from.y), from(left))
+      } else if ( to.x > from.x &&
+          ( ! board.pieces.contents.slice(from.x+1, 7).map( v => v(from.y) ).exists( _ != None ) ) &&
+          ( ! board.moved(7)(from.y) ) && board.pieces.get(Position(7,from.y)).orElse(Some(Piece(White,Pawn))).get.figure == Rook) {
+
+        Some(Position(7, from.y), from(right))
+      } else {
+        None
+      }
+    } else{
+      None
+    }
+  }
 }
 
-case object Knight extends SimpleMoves {
+case object Knight extends Figure{
   val name = "Knight"
   override lazy val abbrev = 'n'
   val dirs: List[Direction] = List(
@@ -57,6 +80,14 @@ case object Knight extends SimpleMoves {
     up(up)(right), up(up)(left), down(down)(right), down(down)(left)
   )
 
+  override def canMove(from: Position, to: Position, board: Board, color: Color): Boolean = {
+    this.reachables(from, board, color).contains(to)
+  }
+
+  def reachables(from: Position, board: Board, color: Color): List[Position] = {
+    dirs.filter( d => ( board.pieces.get(from(d)).isEmpty || board.pieces(from(d)).color != color ) && from(d).onBoard )
+      .map( d => from(d) )
+  }
 }
 
 case object Pawn extends Figure {
@@ -67,21 +98,39 @@ case object Pawn extends Figure {
   def reachables(from: Position, board: Board, color: Color): List[Position] =
     for( d <- dirs if canMove(from, from(d), board, color )) yield from(d)
 
+  def canEnPass(from: Position, to: Position, board: Board, color: Color): Option[Position] = {
+    val dir = if(color == White) up else down
+    val next = from(dir)
+    val m = board.last_move
+
+    if ( next.onBoard && ( next(left) == to || next(right) == to ) ) {
+      val a = board.pieces.get(to(dir.negate())) == Some(Piece(color.other, Pawn))
+      val b = m.from == to(dir) && m.to == to(dir.negate())
+      if ( a && b )
+        Some( to(dir.negate()) )
+      else
+        None
+    } else
+      None
+  }
+
   override def canMove(from: Position, to: Position, board: Board, color: Color): Boolean = {
-    val next = if ( color == White ) from(up) else from(down)
-    if ( next.onBoard ) 
-      if ( next == to ){
+    val dir = if(color == White) up else down
+    val next = from(dir)
+    if ( next.onBoard )
+      if ( next == to ){ // ruch do przodu
         board.pieces.get(to).isEmpty
-      } else if ( next(left) == to || next(right) == to ) {
-        board.pieces.get(to).nonEmpty && board.pieces(to).color != color
-      } else if ( to == next(up) && color == White && from.y == 6 ){
+      } else if ( next(left) == to || next(right) == to ) { // bicie
+        ( board.pieces.get(to).nonEmpty && board.pieces(to).color != color ) ||
+        canEnPass(from, to, board, color).nonEmpty
+      } else if ( to == next(up) && color == White && from.y == 6 ){ // ruch o 2
         board.pieces.get(next).isEmpty && board.pieces.get(next(up)).isEmpty
-      } else if ( to == next(down) && color == Black && from.y == 1 ){
+      } else if ( to == next(down) && color == Black && from.y == 1 ){ // ruch o 2 z drugiej strony
         board.pieces.get(next).isEmpty && board.pieces.get(next(down)).isEmpty
       } else 
-        false 
-    else
-      false
+        false
+      else
+        false
   }
 }
 
