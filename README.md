@@ -1,2 +1,5 @@
-# szachy
-play framework + scalajs
+# Szachy
+
+Webapp for multiplayer chess.
+
+Written in play framework and scalajs.
