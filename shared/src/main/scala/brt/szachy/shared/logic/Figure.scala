@@ -52,17 +52,18 @@ case object King extends Figure{
   }
 
   override def canCastle(from: Position, to: Position, board: Board, color: Color): Option[(Position, Position)] = {
-    if( from.absDelta(to) == (2,0) && ! board.moved(from.x)(from.y) ){
+    if( from.absDelta(to) == (2,0) && ! board.moved(from.x)(from.y) && to.x != from.x ){
 
       // nie może być żadnej figury między królem a wieżą + wieża nieruszona
-      if( to.x < from.x && ( ! board.pieces.contents.slice(1, from.x).map( v=>v(from.y)).exists( _ != None ) ) &&
-          ( ! board.moved(0)(from.y) ) && board.pieces.get(Position(0,from.y)).orElse(Some(Piece(White,Pawn))).get.figure == Rook){
-        Some(Position(0, from.y), from(left))
-      } else if ( to.x > from.x &&
-          ( ! board.pieces.contents.slice(from.x+1, 7).map( v => v(from.y) ).exists( _ != None ) ) &&
-          ( ! board.moved(7)(from.y) ) && board.pieces.get(Position(7,from.y)).orElse(Some(Piece(White,Pawn))).get.figure == Rook) {
+      val (leftSide, rightSide, rook_x, rook_dir) = if( to.x < from.x ){
+        (0, from.x, 0, left)
+      } else {
+        (from.x, 7, 7, right)
+      }
 
-        Some(Position(7, from.y), from(right))
+      if( ( ! board.pieces.contents.slice(leftSide+1, rightSide).map( v=>v(from.y)).exists( _ != None ) ) &&
+          ( ! board.moved(rook_x)(from.y) ) && board.pieces.get(Position(rook_x,from.y)).orElse(Some(Piece(White,Pawn))).get.figure == Rook){
+        Some(Position(rook_x, from.y), from(rook_dir))
       } else {
         None
       }
