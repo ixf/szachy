@@ -15,6 +15,11 @@ object Pieces {
       }
     })
   }
+  def empty() = {
+    new Pieces( Vector.tabulate(8,8){ (i,j) =>
+      None 
+    })
+  }
 }
 
 
@@ -22,8 +27,8 @@ case class Pieces(contents: Vector[Vector[Option[Piece]]]){
   def get(p: Position) = if(p.onBoard) contents(p.x)(p.y) else None
   def apply(p: Position) = get(p).get
   def apply(x: Int, y: Int) = get(Position(x,y))
-  def del(p: Position) = Pieces(contents.updated(p.x, contents(p.x).updated(p.y, None)))
   def add(p: Position, what: Piece) = Pieces(contents.updated(p.x, contents(p.x).updated(p.y, Some(what))))
+  def del(p: Position) = Pieces(contents.updated(p.x, contents(p.x).updated(p.y, None)))
   def contains(p: Position) = get(p).nonEmpty
   def find(p: Piece): List[Position] = 
     for{

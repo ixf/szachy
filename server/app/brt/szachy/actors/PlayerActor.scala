@@ -32,14 +32,31 @@ class PlayerActor(rng: scala.util.Random, out: ActorRef) extends Actor {
           context.system.actorSelection("user/*/*/"+id).resolveOne().onComplete {
             case Success(actorRef) => 
               actorRef ! self
-              context.become(game(Black, actorRef))
+              context.become(get_color(actorRef))
             case Failure(ex) =>
               val p = context.actorOf(GameActor.props(self), id)
-              context.become(game(White, p))
+              context.become(get_color(p))
           }
         case x => println(s"Nie wiem co to: $x")
       }
   }
+
+  def get_color(arbiter: ActorRef): Receive = {
+    case msg@JoinOK(Some(color)) =>
+      out ! msg.asInstanceOf[SharedMessages].asJson.noSpaces
+      context.become(game(color,arbiter))
+    case msg@JoinOK(None) =>
+      out ! msg.asInstanceOf[SharedMessages].asJson.noSpaces
+      context.become(spectate(arbiter))
+  }
+
+
+  def spectate(artiber: ActorRef): Receive = {
+    case x: SharedMessages =>
+      println(x)
+      out ! x.asJson.noSpaces
+  }
+
 
   def game(color: Color, arbiter: ActorRef): Receive = {
     case m: String => 

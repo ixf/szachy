@@ -19,6 +19,7 @@ object ScalaJSExample {
 
   var selected: Option[(Int,Int)] = None
   var board = Board()
+  var my_color: Option[Color] = Some(White)
 
   val img_map: Map[String, HTMLImageElement] = (for( piece <- "kqbrnp"; color <- "ld" ) yield {
     val img = dom.document.createElement("img").asInstanceOf[HTMLImageElement]
@@ -47,12 +48,14 @@ object ScalaJSExample {
             val piece = board.pieces(Position(x,y))
             val dots = piece.reachables(Position(x,y), board)
             for( p <- dots ){
-              ctx.beginPath()
-              ctx.strokeStyle="rgba(196,196,196,0.8)"
-              ctx.arc(p.x*80+120,p.y*80+120, 10, 0, 2*3.1415, false)
-              ctx.fillStyle = "rgba(196,196,196,0.8)"
-              ctx.fill()
-              ctx.stroke()
+              if( board.validAs(Move(Position(x,y), p), piece.color)) {
+                ctx.beginPath()
+                ctx.strokeStyle="rgba(196,196,196,0.8)"
+                ctx.arc(p.x*80+120,p.y*80+120, 10, 0, 2*3.1415, false)
+                ctx.fillStyle = "rgba(196,196,196,0.8)"
+                ctx.fill()
+                ctx.stroke()
+              }
             }
 
           case _ => ()
@@ -76,17 +79,29 @@ object ScalaJSExample {
       m match {
         case Right(Refresh(newBoard)) =>
           board = Board(newBoard)
-        case Right(shared.Move(from, to)) => 
+        case Right(Move(from, to)) => 
           println(s"Move $from $to")
           board = board.move(from, to)
           ctx1.clearRect(400,0,800,40)
           ctx1.fillStyle = "rgb(0,0,0)"
           ctx1.textAlign = "right"
           ctx1.fillText(board.turn + "'s turn", 790, 0);
-        case Right(Join(cstr)) =>
+        case Right(JoinOK(color)) =>
+          val role_text = color match {
+            case None => "You're spectating"
+            case Some(c) => "You're playing as " + c.name
+          }
+          println(role_text)
+          my_color = color
           ctx1.fillStyle = "rgb(0,0,0)"
           ctx1.textAlign = "left"
-          ctx1.fillText(cstr, 10, 0);
+          ctx1.fillText(role_text, 10, 0);
+          ctx1.textAlign = "right"
+          ctx1.fillText(board.turn + "'s turn", 790, 0);
+        case Right(Checkmate(winner)) =>
+          ctx1.clearRect(0,0,800,40)
+          ctx1.textAlign = "center"
+          ctx1.fillText("Checkmate: " + winner.name + " wins.", 400, 0);
         case x => println(x)
       }
     }
